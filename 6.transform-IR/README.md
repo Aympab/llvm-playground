@@ -6,13 +6,13 @@ the LLVM optimized tool `opt`.
 First, we convert out `multiply.c` file from part `2.lower-C-to-IR` and lower it
 to LLVM IR as we've seen with :
 ```
-clang -emit-llvm -S multiply.c -o multiply.ll -Xclang -disable-O0-optnone
+$ clang -emit-llvm -S multiply.c -o multiply.ll -Xclang -disable-O0-optnone
 ```
 
 Now, we use the `opt` tool to transform it into a form where memory is promoted
 to register :
 ```
-opt -mem2reg -S multiply.ll -o multiply1.ll
+$ opt -mem2reg -S multiply.ll -o multiply1.ll
 ```
 
 This will simplify our IR for the mult function from 

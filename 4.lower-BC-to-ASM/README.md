@@ -5,12 +5,12 @@ more.
 
 Run :
 ```
-llc mult.bc -o mult.s
+$ llc mult.bc -o mult.s
 ```
 
 Or using Clang API :
 ```
-clang -S mult.bc -o mult.s -fomit-frame-pointer
+$ clang -S mult.bc -o mult.s -fomit-frame-pointer
 ```
 
 We use the `-fomit-frame-pointer` option because by default Clang does not elimate the frame pointer whereas `llc` does it by default.

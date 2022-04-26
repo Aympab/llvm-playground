@@ -2,7 +2,9 @@
 
 To lower from LLVM-IR / assembly code to bitcode format, run :
 
-`llvm-as mult.ll -o mult.bc`
+```
+$ llvm-as mult.ll -o mult.bc
+```
 
 This will give a file full of unreadable caracters with a default IDE since it
 is bitcode. To be able to "read" the file, use the `hexdump` tool :

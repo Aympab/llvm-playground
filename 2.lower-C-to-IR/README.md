@@ -3,7 +3,7 @@
 To emit LLVM IR from a c file, run :
 
 ```
-clang -emit-llvm -S myFile.c -o myIR.ll
+$ clang -emit-llvm -S myFile.c -o myIR.ll
 ```
 
 ## How does it works ?

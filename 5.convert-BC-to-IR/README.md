@@ -4,7 +4,7 @@ Here we need the *dissasembler* tool : `llvm-dis`.
 
 Run (with the right paths and filename) :
 ```
-llvm-dis mult.bc -o dismult.ll
+$ llvm-dis mult.bc -o dismult.ll
 ```
 
 In our case, the output is the same as the one we created in

@@ -4,6 +4,6 @@ extern int func(int a);
 int main(){
     int num = 5;
     num = func(num);
-    printf("Number is : %d", num);
+    printf("Number is : %d\n", num);
     return num;
 }
