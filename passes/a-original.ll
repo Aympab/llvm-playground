@@ -3,7 +3,7 @@ define i32 @test1(i32 %A) {
     ret i32 %B
 }
 
-define internal i32 @test(i32 %x, i32 %dead){
+define internal i32 @test(i32 %X, i32 %dead){
     ret i32 %X
 }
 
