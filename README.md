@@ -3,7 +3,7 @@ This repository aims at studying LLVM's framework to get a better understanding
 of how a compiler works and what are the steps to get executable machine code
 from a high-level, human-readable language.
 
-The exercices of this repository are the oneS from **LLVM Cookbook** written by
+The exercices of this repository are the ones from **LLVM Cookbook** written by
 Mayur Pandey & Suyog Sarda.
 
 Every recipe is described in the `README.md` file in each folder.
