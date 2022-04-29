@@ -152,6 +152,8 @@ static BaseAST* numeric_parser(){
     return Result;
 }
 
+static BaseAST* expression_parser();
+
 static BaseAST* identifier_parser(){
     std::string IdName = Identifier_String;
 
@@ -213,6 +215,8 @@ static FunctionDefnAST* func_defn_parser(){
     
     return 0;
 }
+
+static BaseAST* binary_op_parser(int Old_Prec, BaseAST *LHS);
 
 static BaseAST* expression_parser(){
     BaseAST *LHS = Base_Parser();
