@@ -12,7 +12,7 @@ enum Token_type {
     DEF_TOKEN         //This token states that what is next is a func definition
 };
 
-static int Numeric_val; //To hold numeric values
+static int Numeric_Val; //To hold numeric values
 
 static std::string Identifier_string; //Holds the identifier string name
 
@@ -40,7 +40,7 @@ static int get_token(){
             LastChar = fgetc(file);
         } while(isdigit(LastChar));
 
-        Numeric_val = strtod(NumStr.c_str(), 0);
+        Numeric_Val = strtod(NumStr.c_str(), 0);
         return NUMERIC_TOKEN;
     }
 
