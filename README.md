@@ -16,3 +16,5 @@ Every recipe is described in the `README.md` file in each folder.
 6. [Transforming LLVM IR](6.transform-IR/README.md)
 7. [Linking LLVM bitcode](7.linking-BC/README.md)
 8. [Executing LLVM bitcode](8.execution/README.md)
+
+[Building a toy language (WIP)](toylang/README.md)
