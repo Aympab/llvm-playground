@@ -112,7 +112,56 @@ static int getBinOpPrecedence(){
 static BaseAST* binary_op_parser(int Old_Prec, BaseAST *LHS){
     while (true)
     {
-        
+        int Operator_Prec = getBinOpPrecedence();
+
+        if(Operator_Prec < Old_Prec) return LHS;
+
+        int BinOp = Current_Token;
+        next_token();
+
+        BaseAST* RHS = Base_Parser();
+        if(!RHS) return 0;
+
+        int Next_Prec = getBinOpPrecedence();
+        if(Operator_Prec < Next_Prec){
+            RHS = binary_op_parser(Operator_Prec+1, RHS);
+            if(RHS == 0) return 0;
+        }
+
+        LHS = new BinaryAST(std::to_string(BinOp), LHS, RHS);
     }
-    
+}
+
+static BaseAST* paran_parser(){
+    next_token();
+    BaseAST* V = expression_parser();
+    if(!V) return 0;
+
+    if(Current_Token != ')')
+        return 0;
+
+    return V;
+}
+
+static void HandleDefn(){
+    if(FunctionDefnAST *F = func_defn_parser()){
+        if(Function* LF = F->Codegen()){
+
+        }
+    }
+    else
+    {
+        next_token();
+    }
+}
+
+static void HandleTopExpression(){
+    if(FunctionDefnAST* F = top_level_parser()){
+        if(Function *LF = F->Codegen()){
+
+        }
+    }
+    else{
+        next_token();
+    }
 }
