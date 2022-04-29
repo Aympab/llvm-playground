@@ -4,8 +4,8 @@
 #include <map>
 #include "llvm-10/llvm/IR/LLVMContext.h"
 #include "llvm-10/llvm/IR/Module.h"
-#include "llvm-c-10/llvm-c/Types.h"
 
+// clang++ toy.cpp -O3 -o toy
 // static std::string file="FUNCDEF foo (x, y)\nx + y * 16";
 FILE* file;
 
@@ -114,7 +114,7 @@ class FunctionDefnAST {
             Func_Decl(proto), Body(body) {};
 };
 
-class FunctionCallAST : BaseAST {
+class FunctionCallAST : public BaseAST {
     std::string Function_Callee;
     std::vector<BaseAST*> Function_Arguments;
 
@@ -128,8 +128,13 @@ class FunctionCallAST : BaseAST {
 
 static int Current_Token;
 
-static void next_token(){
+static BaseAST* identifier_parser();
+static BaseAST* numeric_parser();
+static BaseAST* paran_parser();
+
+static int next_token(){
     Current_Token = get_token();
+    return Current_Token;
 }
 
 static BaseAST* Base_Parser(){
@@ -269,7 +274,7 @@ static BaseAST* paran_parser(){
 
 static void HandleDefn(){
     if(FunctionDefnAST *F = func_defn_parser()){
-        if(Function* LF = F->Codegen()){
+        if(llvm::Function* LF = F->Codegen()){
 
         }
     }
@@ -281,7 +286,7 @@ static void HandleDefn(){
 
 static void HandleTopExpression(){
     if(FunctionDefnAST* F = top_level_parser()){
-        if(Function *LF = F->Codegen()){
+        if(llvm::Function *LF = F->Codegen()){
 
         }
     }
@@ -303,14 +308,14 @@ static void Driver(){
 }
 
 int main(int argc, char* argv[]){
-    LLVMContext &Context = getGlobalContext();
+    llvm::LLVMContext &Context = getGlobalContext();
     init_precedence();
     file = fopen(argv[1], "r");
     if(file == 0){
         printf("Could not open file\n");
     }
     next_token();
-    Module_Ob = new Module("my compiler", Context);
+    auto Module_Ob = new llvm::Module("my compiler", Context);
     Driver();
     Module_Ob->dump();
     return 0;
