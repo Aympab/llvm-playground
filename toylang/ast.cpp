@@ -42,7 +42,7 @@ class FunctionDeclAST {
                             Func_Name(name), Arguments(args) {};
 };
 
-class FunctionDefnAST{
+class FunctionDefnAST {
     FunctionDeclAST *Func_Decl;
     BaseAST *Body;
 
@@ -51,7 +51,7 @@ class FunctionDefnAST{
             Func_Decl(proto), Body(body) {};
 };
 
-class FunctionCallAST{
+class FunctionCallAST : BaseAST {
     std::string Function_Callee;
     std::vector<BaseAST*> Function_Arguments;
 

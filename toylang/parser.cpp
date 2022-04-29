@@ -1,5 +1,6 @@
 #include "lexer.cpp"
 #include "ast.cpp"
+#include <map>
 
 static int Current_Token;
 
@@ -34,7 +35,7 @@ static BaseAST* identifier_parser(){
 
     std::vector<BaseAST*> Args;
     if(Current_Token != ')'){
-        while(1){
+        while(true){
             BaseAST* Arg = expression_parser();
             if(!Arg) return 0;
             Args.push_back(Arg);
@@ -84,8 +85,34 @@ static FunctionDefnAST* func_defn_parser(){
     return 0;
 }
 
-static BastAST* expression_parser(){
-    BastAST *LHS = Base_Parser();
+static BaseAST* expression_parser(){
+    BaseAST *LHS = Base_Parser();
     if(!LHS) return 0;
     return binary_op_parser(0, LHS);
+}
+
+// Parsing binary expressions
+static std::map<char, int> Operator_Precedence;
+
+static void init_precedence(){
+    Operator_Precedence['-'] = 1;
+    Operator_Precedence['+'] = 2;
+    Operator_Precedence['/'] = 3;
+    Operator_Precedence['*'] = 4;
+}
+
+static int getBinOpPrecedence(){
+    if(!isascii(Current_Token)) return -1;
+
+    int TokPrec = Operator_Precedence[Current_Token];
+    if(TokPrec <= 0) return -1;
+    return TokPrec;
+}
+
+static BaseAST* binary_op_parser(int Old_Prec, BaseAST *LHS){
+    while (true)
+    {
+        
+    }
+    
 }
