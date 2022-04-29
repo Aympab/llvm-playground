@@ -13,7 +13,6 @@ enum Token_type {
 };
 
 static int Numeric_Val; //To hold numeric values
-
 static std::string Identifier_string; //Holds the identifier string name
 
 static int get_token(){

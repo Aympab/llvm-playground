@@ -3,6 +3,7 @@
 ## 1. Defining a toy language
 
 TODO : define syntax 
+<br></br>
 
 ## 2. Implementing a lexer
 
@@ -34,6 +35,7 @@ the `get_token()` function.
 
 For a real example, see
 [the clang lexer](https://clang.llvm.org/doxygen/Lexer_8cpp_source.html).
+<br></br>
 
 ## 3. Defining the Abstract Syntax Tree
 
@@ -53,3 +55,14 @@ with a line number. Other examples are :
 The AST is intensively used during semantic analysis : a complete traversal of
 the tree allows to check the corectness of the program. After this phase, the
 AST is used as a base for **code generation**.
+<br></br>
+
+## 4. Implementing a parser
+
+The parser analyzes the code syntactically according to the rules of the
+language's grammar. The parsing phase determines if the input code can be used
+to form a string of tokens according to the grammar. The parser defines
+functions to organize the language into an AST. There are many parsing
+techniques, here we will use a
+[recursive descent top-down](https://www.geeksforgeeks.org/recursive-descent-parser/)
+parser technique.
