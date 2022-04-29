@@ -13,7 +13,7 @@ enum Token_type {
 };
 
 static int Numeric_Val; //To hold numeric values
-static std::string Identifier_string; //Holds the identifier string name
+static std::string Identifier_String; //Holds the identifier string name
 
 static int get_token(){
     static int LastChar = ' ';
@@ -22,12 +22,12 @@ static int get_token(){
         LastChar = fgetc(file);
 
     if(isalpha(LastChar)){
-        Identifier_string = LastChar;
+        Identifier_String = LastChar;
 
         while(isalnum((LastChar = fgetc(file))))
-            Identifier_string += LastChar;
+            Identifier_String += LastChar;
 
-        if(Identifier_string == "FUNCDEF")
+        if(Identifier_String == "FUNCDEF")
             return DEF_TOKEN;
         return IDENTIFIER_TOKEN;
     }
