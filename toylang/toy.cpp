@@ -5,9 +5,12 @@
 #include "llvm-10/llvm/IR/LLVMContext.h"
 #include "llvm-10/llvm/IR/Module.h"
 #include "llvm-10/llvm/IR/Value.h"
+#include "llvm-10/llvm/IR/DerivedTypes.h"
 #include "llvm-10/llvm/IR/IRBuilder.h"
 #include "llvm-10/llvm/IR/Verifier.h"
 // clang++ toy.cpp -O3 -o toy
+// clang++ -O3 toy.cpp `llvm-config --cxxflags --ldflags --system-libs --libs core` -o toy
+
 // static std::string file="FUNCDEF foo (x, y)\nx + y * 16";
 FILE* file;
 
@@ -39,7 +42,7 @@ static int get_token(){
         while(isalnum((LastChar = fgetc(file))))
             Identifier_String += LastChar;
 
-        if(Identifier_String == "FUNCDEF")
+        if(Identifier_String == "def")
             return DEF_TOKEN;
         return IDENTIFIER_TOKEN;
     }
@@ -85,7 +88,7 @@ class VariableAST : public BaseAST {
         llvm::Value* Codegen(){
             llvm::Value *V = Named_Values[Var_Name];
             return V ? V : 0;
-        };
+        }
 };
 
 class NumericAST : public BaseAST {
@@ -95,7 +98,7 @@ class NumericAST : public BaseAST {
         NumericAST(int val) : Numeric_Val(val) {};
         llvm::Value* Codegen(){
             return llvm::ConstantInt::get(llvm::Type::getInt32Ty(Context), Numeric_Val);
-        };
+        }
 };
 
 class BinaryAST : public BaseAST {
@@ -122,7 +125,7 @@ class BinaryAST : public BaseAST {
             case '/' : return Builder.CreateUDiv(L, R, "divtmp");
             default: return 0;
             }
-        };
+        }
         
 };
 
@@ -158,9 +161,7 @@ class FunctionDeclAST {
             }
 
             return F;
-        };
-
-
+        }
 };
 
 class FunctionDefnAST {
@@ -189,7 +190,7 @@ class FunctionDefnAST {
 
             TheFunction->eraseFromParent();
             return 0;
-        };
+        }
 
 };
 
@@ -212,7 +213,7 @@ class FunctionCallAST : public BaseAST {
                 if(ArgsV.back() == 0) return 0;
             }
             return Builder.CreateCall(CalleF, ArgsV, "calltmp");
-        };
+        }
 };
 
 
@@ -444,6 +445,7 @@ int main(int argc, char* argv[]){
     next_token();
     auto Module_Ob = new llvm::Module("my compiler", Context);
     Driver();
-    Module_Ob->dump();
+    Module_Ob->print(llvm::errs(), nullptr);
+
     return 0;
 }
