@@ -139,7 +139,7 @@ class FunctionDeclAST {
         llvm::Value* Codegen(){
             std::vector<llvm::Type*>Integers(Arguments.size(), llvm::Type::getInt32Ty(Context));
             llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(Context), Integers, false);
-            llvm::Function *F = llvm::Function::Create(FT, llvm::GlobalValue::ExternalLinkage, Func_Name, std::default_delete<llvm::Module>());
+            llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, Func_Name, Module_Ob.get());
 
             if(F->getName() != Func_Name){
                 F->eraseFromParent();
@@ -395,7 +395,7 @@ static BaseAST* paran_parser(){
 
 static void HandleDefn(){
     if(FunctionDefnAST *F = func_defn_parser()){
-        if(llvm::Function* LF = F->Codegen()){
+        if(auto* LF = F->Codegen()){
 
         }
     }
@@ -407,7 +407,7 @@ static void HandleDefn(){
 
 static void HandleTopExpression(){
     if(FunctionDefnAST* F = top_level_parser()){
-        if(llvm::Function *LF = F->Codegen()){
+        if(auto *LF = F->Codegen()){
 
         }
     }
