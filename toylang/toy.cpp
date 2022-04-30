@@ -6,6 +6,7 @@
 #include "llvm-10/llvm/IR/Module.h"
 #include "llvm-10/llvm/IR/Value.h"
 #include "llvm-10/llvm/IR/IRBuilder.h"
+#include "llvm-10/llvm/IR/Verifier.h"
 // clang++ toy.cpp -O3 -o toy
 // static std::string file="FUNCDEF foo (x, y)\nx + y * 16";
 FILE* file;
@@ -130,6 +131,7 @@ class FunctionDeclAST {
     std::vector<std::string> Arguments;
 
     public:
+        std::string getName(){ return Func_Name; };
         FunctionDeclAST(const std::string &name,
                         const std::vector<std::string> &args) : 
                             Func_Name(name), Arguments(args) {};
@@ -137,7 +139,7 @@ class FunctionDeclAST {
         llvm::Value* Codegen(){
             std::vector<llvm::Type*>Integers(Arguments.size(), llvm::Type::getInt32Ty(Context));
             llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(Context), Integers, false);
-            llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, Func_Name, Module_Ob);
+            llvm::Function *F = llvm::Function::Create(FT, llvm::GlobalValue::ExternalLinkage, Func_Name, std::default_delete<llvm::Module>());
 
             if(F->getName() != Func_Name){
                 F->eraseFromParent();
@@ -168,6 +170,27 @@ class FunctionDefnAST {
     public:
         FunctionDefnAST(FunctionDeclAST *proto, BaseAST *body) :
             Func_Decl(proto), Body(body) {};
+
+        llvm::Value* Codegen(){
+            Named_Values.clear();
+
+            llvm::Function *TheFunction = Module_Ob->getFunction(Func_Decl->getName());
+            // Func_Decl-> Codegen();
+            if(TheFunction == 0) return 0;
+
+            llvm::BasicBlock *BB = llvm::BasicBlock::Create(Context, "entry", TheFunction);
+            Builder.SetInsertPoint(BB);
+
+            if(llvm::Value *RetVal = Body->Codegen()){
+                Builder.CreateRet(RetVal);
+                llvm::verifyFunction(*TheFunction);
+                return TheFunction;
+            }
+
+            TheFunction->eraseFromParent();
+            return 0;
+        };
+
 };
 
 class FunctionCallAST : public BaseAST {
