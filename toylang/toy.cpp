@@ -4,10 +4,16 @@
 #include <map>
 #include "llvm-10/llvm/IR/LLVMContext.h"
 #include "llvm-10/llvm/IR/Module.h"
-
+#include "llvm-10/llvm/IR/Value.h"
+#include "llvm-10/llvm/IR/IRBuilder.h"
 // clang++ toy.cpp -O3 -o toy
 // static std::string file="FUNCDEF foo (x, y)\nx + y * 16";
 FILE* file;
+
+static llvm::LLVMContext Context;
+static llvm::IRBuilder<> Builder(Context);
+static std::unique_ptr<llvm::Module> Module_Ob;
+static std::map<std::string, llvm::Value *> Named_Values;
 
 enum Token_type {
     EOF_TOKEN = 0,    //States the end of file
@@ -67,6 +73,7 @@ static int get_token(){
 class BaseAST{
     public:
         virtual ~BaseAST();
+        virtual llvm::Value* Codegen() = 0;
 };
 
 class VariableAST : public BaseAST {
@@ -74,6 +81,10 @@ class VariableAST : public BaseAST {
 
     public:
         VariableAST(std::string &name) : Var_Name(name) {};
+        llvm::Value* Codegen(){
+            llvm::Value *V = Named_Values[Var_Name];
+            return V ? V : 0;
+        };
 };
 
 class NumericAST : public BaseAST {
@@ -81,6 +92,9 @@ class NumericAST : public BaseAST {
 
     public:
         NumericAST(int val) : Numeric_Val(val) {};
+        llvm::Value* Codegen(){
+            return llvm::ConstantInt::get(llvm::Type::getInt32Ty(Context), Numeric_Val);
+        };
 };
 
 class BinaryAST : public BaseAST {
@@ -93,6 +107,22 @@ class BinaryAST : public BaseAST {
             Bin_Operator(op),
             LHS(lhs),
             RHS(rhs) {};
+        
+        llvm::Value* Codegen(){
+            llvm::Value *L = LHS->Codegen();
+            llvm::Value *R = RHS->Codegen();
+            if(L == 0 || R == 0) return 0;
+
+            switch (atoi(Bin_Operator.c_str()))
+            {
+            case '+' : return Builder.CreateAdd(L, R, "addtmp");
+            case '-' : return Builder.CreateSub(L, R, "subtmp");
+            case '*' : return Builder.CreateMul(L, R, "multmp");
+            case '/' : return Builder.CreateUDiv(L, R, "divtmp");
+            default: return 0;
+            }
+        };
+        
 };
 
 class FunctionDeclAST {
@@ -103,6 +133,32 @@ class FunctionDeclAST {
         FunctionDeclAST(const std::string &name,
                         const std::vector<std::string> &args) : 
                             Func_Name(name), Arguments(args) {};
+
+        llvm::Value* Codegen(){
+            std::vector<llvm::Type*>Integers(Arguments.size(), llvm::Type::getInt32Ty(Context));
+            llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(Context), Integers, false);
+            llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, Func_Name, Module_Ob);
+
+            if(F->getName() != Func_Name){
+                F->eraseFromParent();
+                F = Module_Ob->getFunction(Func_Name);
+
+                if(!F->empty()) return 0;
+                if(F->arg_size() != Arguments.size()) return 0;
+            }
+
+            unsigned Idx = 0;
+            for(llvm::Function::arg_iterator Arg_It = F->arg_begin(); 
+                Idx != Arguments.size(); ++Arg_It, ++Idx){
+
+                Arg_It->setName(Arguments[Idx]);
+                Named_Values[Arguments[Idx]] = Arg_It;
+            }
+
+            return F;
+        };
+
+
 };
 
 class FunctionDefnAST {
@@ -123,6 +179,17 @@ class FunctionCallAST : public BaseAST {
                         std::vector<BaseAST*> &args) :
                             Function_Callee(callee),
                             Function_Arguments(args) {};
+
+        llvm::Value* Codegen(){
+            llvm::Function *CalleF = Module_Ob->getFunction(Function_Callee);
+            std::vector<llvm::Value*> ArgsV;
+
+            for(unsigned i = 0, e = Function_Arguments.size(); i != e; ++i){
+                ArgsV.push_back(Function_Arguments[i]->Codegen());
+                if(ArgsV.back() == 0) return 0;
+            }
+            return Builder.CreateCall(CalleF, ArgsV, "calltmp");
+        };
 };
 
 
@@ -339,16 +406,11 @@ static void Driver(){
     }
 }
 
-// static llvm::LLVMContext TheContext;
-// static llvm::IRBuilder<> Builder(TheContext);
-// static std::unique_ptr<llvm::Module> TheModule;
-// static std::map<std::string, llvm::Value *> NamedValues;
-
 // Value *LogErrorV(const char *Str) {
 //   LogError(Str);
 //   return nullptr;
 // }
-static llvm::LLVMContext Context;
+// static llvm::LLVMContext Context;
 
 int main(int argc, char* argv[]){
     init_precedence();
