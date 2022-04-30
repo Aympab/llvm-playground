@@ -76,7 +76,7 @@ static int get_token(){
 
 class BaseAST{
     public:
-        virtual ~BaseAST();
+        ~BaseAST();
         virtual llvm::Value* Codegen() = 0;
 };
 
@@ -85,21 +85,25 @@ class VariableAST : public BaseAST {
 
     public:
         VariableAST(std::string &name) : Var_Name(name) {};
-        llvm::Value* Codegen(){
-            llvm::Value *V = Named_Values[Var_Name];
-            return V ? V : 0;
-        }
+        virtual llvm::Value* Codegen();
 };
+
+llvm::Value* VariableAST::Codegen(){
+    llvm::Value *V = Named_Values[Var_Name];
+    return V ? V : 0;
+}
 
 class NumericAST : public BaseAST {
     int Numeric_Val; //str object to store name of the variable
 
     public:
         NumericAST(int val) : Numeric_Val(val) {};
-        llvm::Value* Codegen(){
-            return llvm::ConstantInt::get(llvm::Type::getInt32Ty(Context), Numeric_Val);
-        }
+        virtual llvm::Value* Codegen();
+
 };
+llvm::Value* NumericAST::Codegen(){
+    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(Context), Numeric_Val);
+}
 
 class BinaryAST : public BaseAST {
     std::string Bin_Operator;
@@ -112,22 +116,24 @@ class BinaryAST : public BaseAST {
             LHS(lhs),
             RHS(rhs) {};
         
-        llvm::Value* Codegen(){
-            llvm::Value *L = LHS->Codegen();
-            llvm::Value *R = RHS->Codegen();
-            if(L == 0 || R == 0) return 0;
-
-            switch (atoi(Bin_Operator.c_str()))
-            {
-            case '+' : return Builder.CreateAdd(L, R, "addtmp");
-            case '-' : return Builder.CreateSub(L, R, "subtmp");
-            case '*' : return Builder.CreateMul(L, R, "multmp");
-            case '/' : return Builder.CreateUDiv(L, R, "divtmp");
-            default: return 0;
-            }
-        }
+        virtual llvm::Value* Codegen();
         
 };
+llvm::Value* BinaryAST::Codegen(){
+    llvm::Value *L = LHS->Codegen();
+    llvm::Value *R = RHS->Codegen();
+    if(L == 0 || R == 0) return 0;
+
+    switch (atoi(Bin_Operator.c_str()))
+    {
+    case '+' : return Builder.CreateAdd(L, R, "addtmp");
+    case '-' : return Builder.CreateSub(L, R, "subtmp");
+    case '*' : return Builder.CreateMul(L, R, "multmp");
+    case '/' : return Builder.CreateUDiv(L, R, "divtmp");
+    default: return 0;
+    }
+}
+
 
 class FunctionDeclAST {
     std::string Func_Name;
@@ -139,30 +145,31 @@ class FunctionDeclAST {
                         const std::vector<std::string> &args) : 
                             Func_Name(name), Arguments(args) {};
 
-        llvm::Value* Codegen(){
-            std::vector<llvm::Type*>Integers(Arguments.size(), llvm::Type::getInt32Ty(Context));
-            llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(Context), Integers, false);
-            llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, Func_Name, Module_Ob.get());
-
-            if(F->getName() != Func_Name){
-                F->eraseFromParent();
-                F = Module_Ob->getFunction(Func_Name);
-
-                if(!F->empty()) return 0;
-                if(F->arg_size() != Arguments.size()) return 0;
-            }
-
-            unsigned Idx = 0;
-            for(llvm::Function::arg_iterator Arg_It = F->arg_begin(); 
-                Idx != Arguments.size(); ++Arg_It, ++Idx){
-
-                Arg_It->setName(Arguments[Idx]);
-                Named_Values[Arguments[Idx]] = Arg_It;
-            }
-
-            return F;
-        }
+        virtual llvm::Value* Codegen();
 };
+llvm::Value* FunctionDeclAST::Codegen(){
+    std::vector<llvm::Type*>Integers(Arguments.size(), llvm::Type::getInt32Ty(Context));
+    llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(Context), Integers, false);
+    llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, Func_Name, Module_Ob.get());
+
+    if(F->getName() != Func_Name){
+        F->eraseFromParent();
+        F = Module_Ob->getFunction(Func_Name);
+
+        if(!F->empty()) return 0;
+        if(F->arg_size() != Arguments.size()) return 0;
+    }
+
+    unsigned Idx = 0;
+    for(llvm::Function::arg_iterator Arg_It = F->arg_begin(); 
+        Idx != Arguments.size(); ++Arg_It, ++Idx){
+
+        Arg_It->setName(Arguments[Idx]);
+        Named_Values[Arguments[Idx]] = Arg_It;
+    }
+
+    return F;
+}
 
 class FunctionDefnAST {
     FunctionDeclAST *Func_Decl;
@@ -172,27 +179,27 @@ class FunctionDefnAST {
         FunctionDefnAST(FunctionDeclAST *proto, BaseAST *body) :
             Func_Decl(proto), Body(body) {};
 
-        llvm::Value* Codegen(){
-            Named_Values.clear();
-
-            llvm::Function *TheFunction = Module_Ob->getFunction(Func_Decl->getName());
-            // Func_Decl-> Codegen();
-            if(TheFunction == 0) return 0;
-
-            llvm::BasicBlock *BB = llvm::BasicBlock::Create(Context, "entry", TheFunction);
-            Builder.SetInsertPoint(BB);
-
-            if(llvm::Value *RetVal = Body->Codegen()){
-                Builder.CreateRet(RetVal);
-                llvm::verifyFunction(*TheFunction);
-                return TheFunction;
-            }
-
-            TheFunction->eraseFromParent();
-            return 0;
-        }
-
+        virtual llvm::Value* Codegen();
 };
+llvm::Value* FunctionDefnAST::Codegen(){
+    Named_Values.clear();
+
+    llvm::Function *TheFunction = Module_Ob->getFunction(Func_Decl->getName());
+    // Func_Decl-> Codegen();
+    if(TheFunction == 0) return 0;
+
+    llvm::BasicBlock *BB = llvm::BasicBlock::Create(Context, "entry", TheFunction);
+    Builder.SetInsertPoint(BB);
+
+    if(llvm::Value *RetVal = Body->Codegen()){
+        Builder.CreateRet(RetVal);
+        llvm::verifyFunction(*TheFunction);
+        return TheFunction;
+    }
+
+    TheFunction->eraseFromParent();
+    return 0;
+}
 
 class FunctionCallAST : public BaseAST {
     std::string Function_Callee;
@@ -203,19 +210,19 @@ class FunctionCallAST : public BaseAST {
                         std::vector<BaseAST*> &args) :
                             Function_Callee(callee),
                             Function_Arguments(args) {};
-
-        llvm::Value* Codegen(){
-            llvm::Function *CalleF = Module_Ob->getFunction(Function_Callee);
-            std::vector<llvm::Value*> ArgsV;
-
-            for(unsigned i = 0, e = Function_Arguments.size(); i != e; ++i){
-                ArgsV.push_back(Function_Arguments[i]->Codegen());
-                if(ArgsV.back() == 0) return 0;
-            }
-            return Builder.CreateCall(CalleF, ArgsV, "calltmp");
-        }
+        virtual llvm::Value* Codegen();
 };
 
+llvm::Value* FunctionCallAST::Codegen(){
+    llvm::Function *CalleF = Module_Ob->getFunction(Function_Callee);
+    std::vector<llvm::Value*> ArgsV;
+
+    for(unsigned i = 0, e = Function_Arguments.size(); i != e; ++i){
+        ArgsV.push_back(Function_Arguments[i]->Codegen());
+        if(ArgsV.back() == 0) return 0;
+    }
+    return Builder.CreateCall(CalleF, ArgsV, "calltmp");
+}
 
 static int Current_Token;
 
