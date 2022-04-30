@@ -216,6 +216,33 @@ static FunctionDefnAST* func_defn_parser(){
     return 0;
 }
 
+//if we have a top level expression
+static FunctionDefnAST* top_level_parser(){
+    if(BaseAST* F = expression_parser()){
+        auto Decl = new FunctionDeclAST("", std::vector<std::string>());  //we make an empty func decl
+        return new FunctionDefnAST(Decl, F);
+    }
+    return nullptr;
+    
+    // next_token();
+    // FunctionDeclAST *Decl = func_decl_parser();
+    // if(Decl == 0) return 0;
+
+    // if(BaseAST *Body = expression_parser())
+    //     return new FunctionDefnAST(Decl, Body);
+}
+
+// /// toplevelexpr ::= expression
+// static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
+//   if (auto E = ParseExpression()) {
+//     // Make an anonymous proto.
+//     auto Proto = std::make_unique<PrototypeAST>("", std::vector<std::string>());
+//     return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+//   }
+//   return nullptr;
+// }
+
+
 static BaseAST* binary_op_parser(int Old_Prec, BaseAST *LHS);
 
 static BaseAST* expression_parser(){
@@ -305,14 +332,25 @@ static void Driver(){
         {
         case EOF_TOKEN : return;
         case ';' : next_token(); break;
-        case DEF_TOKEN : HandleDefn(); break;   
+        case DEF_TOKEN : HandleDefn(); break;
         default : HandleTopExpression(); break;
+        // default : next_token(); break;
         }
     }
 }
 
+// static llvm::LLVMContext TheContext;
+// static llvm::IRBuilder<> Builder(TheContext);
+// static std::unique_ptr<llvm::Module> TheModule;
+// static std::map<std::string, llvm::Value *> NamedValues;
+
+// Value *LogErrorV(const char *Str) {
+//   LogError(Str);
+//   return nullptr;
+// }
+static llvm::LLVMContext Context;
+
 int main(int argc, char* argv[]){
-    llvm::LLVMContext &Context = getGlobalContext();
     init_precedence();
     file = fopen(argv[1], "r");
     if(file == 0){
