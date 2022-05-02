@@ -2,7 +2,7 @@
 #include <string>
 
 // static std::string file="FUNCDEF foo (x, y)\nx + y * 16";
-// _IO_FILE* file;
+FILE* file;
 
 enum Token_type {
     EOF_TOKEN = 0,    //States the end of file
