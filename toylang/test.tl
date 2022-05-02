@@ -1,2 +1,2 @@
-def foo(x, y)
+def moo(x, y)
 x + y * 16

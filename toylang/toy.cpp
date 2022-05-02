@@ -1,21 +1,23 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <iostream>
 #include <map>
-#include "llvm-10/llvm/IR/LLVMContext.h"
-#include "llvm-10/llvm/IR/Module.h"
-#include "llvm-10/llvm/IR/Value.h"
-#include "llvm-10/llvm/IR/DerivedTypes.h"
-#include "llvm-10/llvm/IR/IRBuilder.h"
-#include "llvm-10/llvm/IR/Verifier.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Value.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Verifier.h"
 // clang++ toy.cpp -O3 -o toy
 // clang++ -O3 toy.cpp `llvm-config --cxxflags --ldflags --system-libs --libs core` -o toy
+// g++ -O3 toy.cpp -g `llvm-config --cxxflags --ldflags --system-libs --libs core` -o toy
 
 // static std::string file="FUNCDEF foo (x, y)\nx + y * 16";
 FILE* file;
 
-static llvm::LLVMContext Context;
-static llvm::IRBuilder<> Builder(Context);
+static std::unique_ptr<llvm::LLVMContext> Context;
+static std::unique_ptr<llvm::IRBuilder<>> Builder;
 static std::unique_ptr<llvm::Module> Module_Ob;
 static std::map<std::string, llvm::Value *> Named_Values;
 
@@ -33,8 +35,10 @@ static std::string Identifier_String; //Holds the identifier string name
 static int get_token(){
     static int LastChar = ' ';
 
-    while(isspace(LastChar))
+    printf("%c\n", fgetc(file));
+    while(isspace(LastChar)){
         LastChar = fgetc(file);
+    }
 
     if(isalpha(LastChar)){
         Identifier_String = LastChar;
@@ -44,6 +48,8 @@ static int get_token(){
 
         if(Identifier_String == "def")
             return DEF_TOKEN;
+        // if (IdentifierStr == "extern")
+        // return tok_extern;
         return IDENTIFIER_TOKEN;
     }
 
@@ -102,7 +108,7 @@ class NumericAST : public BaseAST {
 
 };
 llvm::Value* NumericAST::Codegen(){
-    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(Context), Numeric_Val);
+    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(*Context), Numeric_Val);
 }
 
 class BinaryAST : public BaseAST {
@@ -126,10 +132,10 @@ llvm::Value* BinaryAST::Codegen(){
 
     switch (atoi(Bin_Operator.c_str()))
     {
-    case '+' : return Builder.CreateAdd(L, R, "addtmp");
-    case '-' : return Builder.CreateSub(L, R, "subtmp");
-    case '*' : return Builder.CreateMul(L, R, "multmp");
-    case '/' : return Builder.CreateUDiv(L, R, "divtmp");
+    case '+' : return Builder->CreateAdd(L, R, "addtmp");
+    case '-' : return Builder->CreateSub(L, R, "subtmp");
+    case '*' : return Builder->CreateMul(L, R, "multmp");
+    case '/' : return Builder->CreateUDiv(L, R, "divtmp");
     default: return 0;
     }
 }
@@ -140,7 +146,7 @@ class FunctionDeclAST {
     std::vector<std::string> Arguments;
 
     public:
-        std::string getName(){ return Func_Name; };
+        const std::string &getName(){ return Func_Name; };
         FunctionDeclAST(const std::string &name,
                         const std::vector<std::string> &args) : 
                             Func_Name(name), Arguments(args) {};
@@ -148,8 +154,8 @@ class FunctionDeclAST {
         virtual llvm::Value* Codegen();
 };
 llvm::Value* FunctionDeclAST::Codegen(){
-    std::vector<llvm::Type*>Integers(Arguments.size(), llvm::Type::getInt32Ty(Context));
-    llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(Context), Integers, false);
+    std::vector<llvm::Type*>Integers(Arguments.size(), llvm::Type::getInt32Ty(*Context));
+    llvm::FunctionType *FT = llvm::FunctionType::get(llvm::Type::getInt32Ty(*Context), Integers, false);
     llvm::Function *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, Func_Name, Module_Ob.get());
 
     if(F->getName() != Func_Name){
@@ -184,15 +190,18 @@ class FunctionDefnAST {
 llvm::Value* FunctionDefnAST::Codegen(){
     Named_Values.clear();
 
+    // llvm::Function *TheFunction = Module_Ob->getFunction(Func_Decl->getName());
+    std::cout << "Before seg fault" << std::endl;
     llvm::Function *TheFunction = Module_Ob->getFunction(Func_Decl->getName());
+    std::cout << "After seg fault" << std::endl;
     // Func_Decl-> Codegen();
     if(TheFunction == 0) return 0;
 
-    llvm::BasicBlock *BB = llvm::BasicBlock::Create(Context, "entry", TheFunction);
-    Builder.SetInsertPoint(BB);
+    llvm::BasicBlock *BB = llvm::BasicBlock::Create(*Context, "entry", TheFunction);
+    Builder->SetInsertPoint(BB);
 
     if(llvm::Value *RetVal = Body->Codegen()){
-        Builder.CreateRet(RetVal);
+        Builder->CreateRet(RetVal);
         llvm::verifyFunction(*TheFunction);
         return TheFunction;
     }
@@ -221,7 +230,7 @@ llvm::Value* FunctionCallAST::Codegen(){
         ArgsV.push_back(Function_Arguments[i]->Codegen());
         if(ArgsV.back() == 0) return 0;
     }
-    return Builder.CreateCall(CalleF, ArgsV, "calltmp");
+    return Builder->CreateCall(CalleF, ArgsV, "calltmp");
 }
 
 static int Current_Token;
@@ -281,6 +290,7 @@ static BaseAST* identifier_parser(){
 }
 
 static FunctionDeclAST *func_decl_parser(){
+    std::cout << "TOKEN IS : " << Current_Token << std::endl;
     if(Current_Token != IDENTIFIER_TOKEN)
         return 0;
 
@@ -305,7 +315,9 @@ static FunctionDeclAST *func_decl_parser(){
 
 static FunctionDefnAST* func_defn_parser(){
     next_token();
+    std::cout << "In func defn parser" << std::endl;
     FunctionDeclAST *Decl = func_decl_parser();
+    std::cout << Decl->getName() << std::endl;
     if(Decl == 0) return 0;
 
     if(BaseAST *Body = expression_parser())
@@ -441,7 +453,7 @@ static void Driver(){
 //   LogError(Str);
 //   return nullptr;
 // }
-// static llvm::LLVMContext Context;
+// static llvm::LLVMContext *Context;
 
 int main(int argc, char* argv[]){
     init_precedence();
@@ -450,7 +462,11 @@ int main(int argc, char* argv[]){
         printf("Could not open file\n");
     }
     next_token();
-    auto Module_Ob = new llvm::Module("my compiler", Context);
+
+    Context = std::make_unique<llvm::LLVMContext>();
+    auto Module_Ob = new llvm::Module("my compiler", *Context);
+    Builder = std::make_unique<llvm::IRBuilder<>>(*Context);
+
     Driver();
     Module_Ob->print(llvm::errs(), nullptr);
 
