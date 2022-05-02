@@ -1,2 +1,2 @@
-def moo(x, y)
-x + y * 16
+def moo(x y)
+16 + x + y

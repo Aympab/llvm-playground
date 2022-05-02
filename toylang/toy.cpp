@@ -35,13 +35,13 @@ static std::string Identifier_String; //Holds the identifier string name
 static int get_token(){
     static int LastChar = ' ';
 
-    printf("%c\n", fgetc(file));
-    while(isspace(LastChar)){
+    while(isspace(LastChar))
         LastChar = fgetc(file);
-    }
+    
 
     if(isalpha(LastChar)){
         Identifier_String = LastChar;
+        printf("%c\n", LastChar);
 
         while(isalnum((LastChar = fgetc(file))))
             Identifier_String += LastChar;
@@ -178,23 +178,23 @@ llvm::Value* FunctionDeclAST::Codegen(){
 }
 
 class FunctionDefnAST {
-    FunctionDeclAST *Func_Decl;
     BaseAST *Body;
 
     public:
+        FunctionDeclAST *Func_Decl;
         FunctionDefnAST(FunctionDeclAST *proto, BaseAST *body) :
             Func_Decl(proto), Body(body) {};
 
-        virtual llvm::Value* Codegen();
+        llvm::Value* Codegen();
 };
 llvm::Value* FunctionDefnAST::Codegen(){
     Named_Values.clear();
 
-    // llvm::Function *TheFunction = Module_Ob->getFunction(Func_Decl->getName());
     std::cout << "Before seg fault" << std::endl;
-    llvm::Function *TheFunction = Module_Ob->getFunction(Func_Decl->getName());
+    // std::cout << "FNAME IS : " << Func_Decl->getName();
+    // llvm::Function *TheFunction = Module_Ob->getFunction(Func_Decl->getName());
     std::cout << "After seg fault" << std::endl;
-    // Func_Decl-> Codegen();
+    llvm::Function *TheFunction = (llvm::Function*)Func_Decl-> Codegen();
     if(TheFunction == 0) return 0;
 
     llvm::BasicBlock *BB = llvm::BasicBlock::Create(*Context, "entry", TheFunction);
@@ -290,7 +290,7 @@ static BaseAST* identifier_parser(){
 }
 
 static FunctionDeclAST *func_decl_parser(){
-    std::cout << "TOKEN IS : " << Current_Token << std::endl;
+    // printf("TOKEN IS : %d\n", Current_Token);
     if(Current_Token != IDENTIFIER_TOKEN)
         return 0;
 
@@ -315,13 +315,16 @@ static FunctionDeclAST *func_decl_parser(){
 
 static FunctionDefnAST* func_defn_parser(){
     next_token();
-    std::cout << "In func defn parser" << std::endl;
+    // std::cout << "In func defn parser" << std::endl;
     FunctionDeclAST *Decl = func_decl_parser();
-    std::cout << Decl->getName() << std::endl;
+
     if(Decl == 0) return 0;
 
-    if(BaseAST *Body = expression_parser())
+    if(BaseAST *Body = expression_parser()){
+        std::cout << "My name : " << Decl->getName() << std::endl;
+        // std::cout << "My name : " << Decl-> << std::endl;
         return new FunctionDefnAST(Decl, Body);
+    }
     
     return 0;
 }
@@ -414,7 +417,9 @@ static BaseAST* paran_parser(){
 }
 
 static void HandleDefn(){
+    std::cout << "In HandleDefn" << std::endl;
     if(FunctionDefnAST *F = func_defn_parser()){
+        std::cout << "FNAME = " << F->Func_Decl->getName()<< std::endl;
         if(auto* LF = F->Codegen()){
 
         }
