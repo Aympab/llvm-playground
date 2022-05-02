@@ -202,7 +202,7 @@ llvm::Value* FunctionDefnAST::Codegen(){
 
     if(llvm::Value *RetVal = Body->Codegen()){
         Builder->CreateRet(RetVal);
-        llvm::verifyFunction(*TheFunction);
+        //llvm::verifyFunction(*TheFunction);
         return TheFunction;
     }
 
